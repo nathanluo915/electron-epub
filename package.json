@@ -1,0 +1,17 @@
+{
+  "name": "epubBuilder",
+  "productName": "Epub Builder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron-prebuilt": "^1.4.13",
+    "epub-builder": "^1.2.3"
+  }
+}
