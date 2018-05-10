@@ -7,10 +7,25 @@
     <body>
         <div class="container-flow">
             <div class="input-groups">
-                <div class="form-group">
-                    <label for="book-title">Book Title</label>
-                    <input type="text" class="form-control" name="book-title" id="book-title"/>
+                <div class="container">
+                    <div class="form-group">
+                        <label for="book-title">Book Title</label>
+                        <input type="text" class="form-control" name="book-title" id="book-title"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="author">Author</label>
+                        <input type="text" class="form-control" name="author" id="author"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="summary">Summary</label>
+                        <textarea class="form-control" rows="3" name="summary" id="summary"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="file-name">File Name</label>
+                        <input type="text" class="form-control" name="file-name" id="file-name"/>
+                    </div>
                 </div>
+                <hr />
                 <div class="form-group">
                     <label for="cht-title">Chapter Title</label>
                     <input type="text" class="form-control" name="chapter-title" id="cht-title"/>
@@ -23,6 +38,7 @@
             <div class="button-group">
                 <button class="btn btn-primary" id="new-chapter">New Chapter</button>
                 <button class="btn btn-primary" id="save-book">Save Book</button>
+                <button class="btn btn-primary" id="test">Test</button>
             </div>
         </div>
         <script>require('../renderers/main-renderer')</script>
