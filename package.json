@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "electron-prebuilt": "^1.4.13",
-    "epub-builder": "^1.2.3"
+    "epub-builder": "^1.2.3",
+    "nightmare": "^2.9.1"
   }
 }
