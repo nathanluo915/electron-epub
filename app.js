@@ -5,14 +5,15 @@ const ipc = electron.ipcMain;
 // const clipboard = electron.clipboard;
 const book = require("epub-builder");
 const Nightmare = require('nightmare');
+const queries = require("./parseQueries")
 
-
+const TIMEOUT = 1500;
 let win;
 let chapterPayload = {
 	title: "",
 	content: "",
 }
-let i = 0;
+let i = 1053;
 // const chapters = [
 // 	'https://www.lightnovel.cn/thread-901603-1-1.html',
 // 	'https://www.lightnovel.cn/thread-901603-2-1.html',
@@ -23,18 +24,18 @@ let i = 0;
 // 	'https://www.lightnovel.cn/thread-901603-7-1.html',
 // 	'https://www.lightnovel.cn/thread-901603-8-1.html',
 // ]
+// document.querySelectorAll('#chapterList li')
+var chapters = [];
+// for (let cht = 95205; cht <= 95210; cht ++) {
+// 	chapters.push(`https://www.uukanshu.net/b/240239/${cht}.html`)
+// }
 
-const chapters = [];
-for (let cht = 1; cht <= 3; cht ++) {
-	chapters.push(`https://www.lightnovel.cn/forum.php?mod=viewthread&tid=863832&extra=&authorid=912367&page=${cht}`)
-}
-
-const bookTitle = '10 Years Later...';
-
-book.setUUID('512687913648516');
+const bookTitle = '长生仙游2';
+234345
+book.setUUID('23434593437830299');
 book.setTitle(bookTitle);
-book.setAuthor('Someone');
-book.setSummary('10 Years Later...');
+book.setAuthor('四更不睡');
+book.setSummary(bookTitle);
 
 app.on('ready', () => {
 	win = new BrowserWindow({
@@ -50,8 +51,14 @@ app.on('ready', () => {
 			loadAndParsePage(i);
 		},
 	}));
+	menu.append(new electron.MenuItem({
+		label: 'Setup Chapters',
+		click: () => {
+			setupChapters();
+		},
+	}));
 	electron.Menu.setApplicationMenu(menu);
-	win.loadURL('https://www.lightnovel.cn/forum.php');
+	win.loadURL(queries.sixnBookURL);
 	// menu.append(new MenuItem({label: 'MenuItem1', click() { console.log('item 1 clicked') }}))
 	// win.loadURL(`file://${__dirname}/templates/main.html`);
 	// checkClipboardForChange(clipboard, (text) => {
@@ -70,34 +77,34 @@ app.on('ready', () => {
 	})
 });
 
+ipc.on('chaptersSetup', function (event, chapterList) {
+	console.log('chapters setup: ', chapterList);
+	chapters = chapterList
+});
+
+function setupChapters() {
+	win.webContents.executeJavaScript(queries.sixnChapterList)
+}
+
+
 ipc.on('query', function (event, value) {
 	console.log(value);
 	book.addChapter(value.title, value.content);
 	i ++;
 	setTimeout(function() {
 		loadAndParsePage(i);
-	}, 2000);
+	}, TIMEOUT);
 });
 
 function loadAndParsePage(i) {
+	console.log('Chapters Length: ', chapters.length)
 	if (i < chapters.length) {
+		console.log('load window: ', chapters[i])
 		win.loadURL(chapters[i]);
+		
 		win.webContents.on('dom-ready', () => {
 			console.log('done loading');
-			win.webContents.executeJavaScript(`
-				const ipc = require('electron').ipcRenderer;
-				console.log(ipc);
-				const contentsContainer = document.getElementsByClassName('t_f');
-				const contents = [];
-				for (let j = 0; j < contentsContainer.length; j++) {
-					contents.push(contentsContainer[j].innerHTML);
-				}
-				const value = {
-					title: document.querySelector('.pg strong').innerHTML,
-					content: contents.join('<br><br/>------------------------------------<br><br>'),
-				};
-				ipc.send('query', value);
-			`);
+			win.webContents.executeJavaScript(queries.sixnQuery);
 		});
 	} else {
 		book.createBook(bookTitle);
@@ -105,6 +112,7 @@ function loadAndParsePage(i) {
 	}
 	
 }
+
 
 // function checkClipboardForChange(clipboard, onChange) {
 //   let cache = clipboard.readText()

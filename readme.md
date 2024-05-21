@@ -13,3 +13,5 @@ A function will check clipboard changes constantly and invoke the callback when 
 
 Start the program by running `npm start`;
 Debug with vscode is available (`launch.json` is updated).
+
+Load the chapter list by clicking "Setup Chapters" button, which will build the chapter list array. Then click the "Start Building" button to fetch data from each chapter url.
