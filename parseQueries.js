@@ -1,5 +1,34 @@
-const lightnovelQuery = `
-const ipc = require('electron').ipcRenderer;
+const fs = require("fs");
+
+function readQueryFile(filepath) {
+	try {
+    const data = fs.readFileSync(filepath, 'utf8');
+    console.log('File content:', data);
+		return data;
+	} catch (err) {
+		console.error('Error reading file:', err);
+	}
+}
+
+const commonLib = "const ipc = require('electron').ipcRenderer;\n"
+function generateChapterListQuery(listQuery) {
+	return commonLib + "var chapterList = [];\n" + listQuery + "\nipc.send('chaptersSetup', chapterList);"
+}
+
+function generateVolumeListQuery(listQuery) {
+	return commonLib + "var volumeList = [];\n" + listQuery + "\nipc.send('volumesSetup', volumeList);"
+}
+
+function generateContentQuery(contentQuery) {
+	return commonLib + contentQuery + `
+const value = {
+	title,
+	content,
+};
+ipc.send('query', value);`;
+}
+
+const lightnovelQuery = commonLib + `
 const contentsContainer = document.getElementsByClassName('#contentbox');
 const contents = [];
 for (let j = 0; j < contentsContainer.length; j++) {
@@ -12,16 +41,14 @@ const value = {
 ipc.send('query', value);
 `;
 
-const uuChapterList = `
-const ipc = require('electron').ipcRenderer;
+const uuChapterList = commonLib + `
 var chapterList = [];
 document.querySelectorAll('#chapterList li a').forEach((x) => chapterList.push(x.getAttribute('href')));
 chapterList = chapterList.reverse().map((x) => 'https://www.uukanshu.net'+ x);
 ipc.send('chaptersSetup', chapterList);
 `;
 
-const uuQuery = `
-const ipc = require('electron').ipcRenderer;
+const uuQuery = commonLib + `
 const title = document.querySelector('#timu').innerHTML;
 const content = document.querySelector('#contentbox').innerHTML;
 const value = {
@@ -31,8 +58,7 @@ const value = {
 ipc.send('query', value);
 `;
 
-const asxsChapterList = `
-const ipc = require('electron').ipcRenderer;
+const asxsChapterList = commonLib + `
 var chapterList = [];
 const chapterTable = document.querySelectorAll('#at')[1]
 const trs = chapterTable.querySelectorAll('tr:not(:first-child)');
@@ -41,8 +67,7 @@ chapterList = chapterList.map((x) => 'https://www.asxs.com'+ x);
 ipc.send('chaptersSetup', chapterList);
 `;
 
-const asxsQuery = `
-const ipc = require('electron').ipcRenderer;
+const asxsQuery = commonLib + `
 const title = document.querySelector('h1').innerHTML;
 const content= document.querySelector('#contents');
 const ads = content.querySelectorAll('#device');
@@ -57,15 +82,13 @@ ipc.send('query', value);
 `;
 
 const sixnBookURL = 'https://www.69shuba.com/book/50851/'
-const sixnChapterList = `
-const ipc = require('electron').ipcRenderer;
+const sixnChapterList = commonLib + `
 var chapterList = []
 document.querySelectorAll('#catalog ul li a').forEach((x) => chapterList.push(x.getAttribute('href')));
 ipc.send('chaptersSetup', chapterList);
 `;
 
-const sixnQuery = `
-const ipc = require('electron').ipcRenderer;
+const sixnQuery = commonLib + `
 const title = document.querySelector('h1').innerHTML;
 const txtnav = document.querySelector('.txtnav');
 // const hide720 = txtnav.querySelector('.hide720');
@@ -78,6 +101,29 @@ const value = {
 ipc.send('query', value);
 `;
 
+
+const biliVolumeList = generateVolumeListQuery(readQueryFile("./parseQueries/biliVolumeQuery.js"));
+const biliQuery = generateContentQuery(readQueryFile("./parseQueries/biliContentQuery.js"));
+const biliUrlParser = function(chapterList) {
+	console.log("Chapter List: ", chapterList);
+	const chapterUrlList = []
+	for (let i = 0; i < chapterList.length;  i++) {
+		let page = chapterList[i].url;
+		console.log("Chapter Url: ", page)
+		if (chapterList[i].title == "登场人物回顾") {
+			break
+		} else if (page.includes("javascript")) {
+			page = chapterList[i-1].url
+			const pg = page.split("/");
+			const num = pg[pg.length - 1].split(".html")[0] ;
+			pg[pg.length - 1] = parseInt(num) + 1 + ".html";
+			page = pg.join("/");
+		}
+		chapterUrlList.push("https://www.bilinovel.com" + page);
+	}
+	return chapterUrlList;
+}
+
 module.exports = {
 	lightnovelQuery,
 	uuChapterList,
@@ -87,4 +133,7 @@ module.exports = {
 	sixnBookURL,
 	sixnChapterList,
 	sixnQuery,
+	biliVolumeList,
+	biliQuery,
+	biliUrlParser,
 };

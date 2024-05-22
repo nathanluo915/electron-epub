@@ -3,39 +3,43 @@ const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const ipc = electron.ipcMain;
 // const clipboard = electron.clipboard;
-const book = require("epub-builder");
-const Nightmare = require('nightmare');
 const queries = require("./parseQueries")
 
 const TIMEOUT = 1500;
 let win;
-let chapterPayload = {
-	title: "",
-	content: "",
-}
-let i = 1053;
-// const chapters = [
-// 	'https://www.lightnovel.cn/thread-901603-1-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-2-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-3-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-4-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-5-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-6-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-7-1.html',
-// 	'https://www.lightnovel.cn/thread-901603-8-1.html',
-// ]
-// document.querySelectorAll('#chapterList li')
+// let i = 1053;
+let i = 0;
+let j = 7;
 var chapters = [];
-// for (let cht = 95205; cht <= 95210; cht ++) {
-// 	chapters.push(`https://www.uukanshu.net/b/240239/${cht}.html`)
-// }
+var volumes = [];
 
-const bookTitle = '长生仙游2';
-234345
-book.setUUID('23434593437830299');
-book.setTitle(bookTitle);
-book.setAuthor('四更不睡');
-book.setSummary(bookTitle);
+// const bookUrl = queries.sixnBookURL;
+// const chapterQuery = queries.sixnChapterList;
+// const contentQuery = queries.sixnQuery;
+
+const bookUrl = "https://www.bilinovel.com/novel/2978/catalog";
+const volumeQuery = queries.biliVolumeList;
+const contentQuery = queries.biliQuery;
+const urlParser = queries.biliUrlParser;
+
+let book = null;
+const bookTitle = '叹息的亡灵想引退';
+let volumeTitle = bookTitle;
+const bookAuthor = '槻影';
+
+function generateHexRandomString(length = 16) {
+  const charset = '0123456789abcdef';
+  let result = '';
+  const charactersLength = charset.length;
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charactersLength);
+    result += charset[randomIndex];
+  }
+
+  return result;
+}
+
 
 app.on('ready', () => {
 	win = new BrowserWindow({
@@ -44,6 +48,10 @@ app.on('ready', () => {
 			allowRunningInsecureContent: true,
 		}
 	});
+	win.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+    details.requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36';
+    callback({ cancel: false, requestHeaders: details.requestHeaders });
+  });
 	const menu = electron.Menu.getApplicationMenu();
 	menu.append(new electron.MenuItem({
 		label: 'Start Building',
@@ -54,11 +62,17 @@ app.on('ready', () => {
 	menu.append(new electron.MenuItem({
 		label: 'Setup Chapters',
 		click: () => {
-			setupChapters();
+			triggerChapterSetup();
+		},
+	}));
+	menu.append(new electron.MenuItem({
+		label: 'Setup Volumes',
+		click: () => {
+			triggerVolumeSetup();
 		},
 	}));
 	electron.Menu.setApplicationMenu(menu);
-	win.loadURL(queries.sixnBookURL);
+	win.loadURL(bookUrl);
 	// menu.append(new MenuItem({label: 'MenuItem1', click() { console.log('item 1 clicked') }}))
 	// win.loadURL(`file://${__dirname}/templates/main.html`);
 	// checkClipboardForChange(clipboard, (text) => {
@@ -77,14 +91,45 @@ app.on('ready', () => {
 	})
 });
 
+function triggerChapterSetup() {
+	if (chapterQuery != null) {
+		win.webContents.executeJavaScript(chapterQuery)
+	} else {
+		console.log("chapterQuery is empty")
+	}
+}
+
+function triggerVolumeSetup() {
+	if (volumeQuery != null) {
+		win.webContents.executeJavaScript(volumeQuery)
+	} else {
+		console.log("volumeQuery is empty")
+	}
+}
+
 ipc.on('chaptersSetup', function (event, chapterList) {
 	console.log('chapters setup: ', chapterList);
-	chapters = chapterList
+	chapters = chapterList;
+	book = require("epub-builder");
+	book.setUUID(generateHexRandomString());
+	book.setTitle(bookTitle);
+	book.setAuthor(bookAuthor);
+	book.setSummary(bookTitle);
 });
 
-function setupChapters() {
-	win.webContents.executeJavaScript(queries.sixnChapterList)
-}
+ipc.on('volumesSetup', function (event, volumeList) {
+	console.log('volumes setup: ', volumeList);
+	volumes = volumeList;
+	chapters = urlParser(volumes[j].chapters);
+	console.log("Chapters: ", chapters);
+	volumeTitle = bookTitle + " - " + volumes[j].title;
+	console.log("volumeTitle: ", volumeTitle);
+	book = require("epub-builder");
+	book.setUUID(generateHexRandomString());
+	book.setTitle(volumeTitle);
+	book.setAuthor(bookAuthor);
+	book.setSummary(volumeTitle);
+});
 
 
 ipc.on('query', function (event, value) {
@@ -96,21 +141,40 @@ ipc.on('query', function (event, value) {
 	}, TIMEOUT);
 });
 
-function loadAndParsePage(i) {
+function newVolume() {
+	volumeTitle = bookTitle + " - " + volumes[j].title;
+	chapters = urlParser(volumes[j].chapters);
+	i = 0;
+	book = require("epub-builder");
+	book.setUUID(generateHexRandomString());
+	book.setTitle(volumeTitle);
+	book.setAuthor(bookAuthor);
+	book.setSummary(volumeTitle);
+	setTimeout(function() {
+		loadAndParsePage(i);
+	}, TIMEOUT);
+};
+
+function loadAndParsePage(chapterIndex) {
 	console.log('Chapters Length: ', chapters.length)
-	if (i < chapters.length) {
-		console.log('load window: ', chapters[i])
-		win.loadURL(chapters[i]);
+	if (chapterIndex < chapters.length) {
+		console.log('load window: ', chapters[chapterIndex])
+		win.loadURL(chapters[chapterIndex]);
 		
-		win.webContents.on('dom-ready', () => {
+		win.webContents.on('did-finish-load', () => {
 			console.log('done loading');
-			win.webContents.executeJavaScript(queries.sixnQuery);
+			win.webContents.executeJavaScript(contentQuery);
 		});
 	} else {
-		book.createBook(bookTitle);
+		book.createBook(volumeTitle);
 		console.log('Book creation done...');
+		if (volumes != []) {
+			j += 1;
+			if (j < volumes.length) {
+				newVolume();
+			}
+		}
 	}
-	
 }
 
 
